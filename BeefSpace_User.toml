@@ -1,0 +1,310 @@
+FileVersion = 1
+LastConfig = "Test"
+LastPlatform = "Win64"
+RecentFilesList = ["test\\src\\GeneratorTest.bf", "src\\XmlDeserializer.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\IO\\StringStream.bf", "src\\XmlVisitor.bf", "src\\XmlReader.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\String.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Result.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Collections\\List.bf", "src\\XmlSerializer.bf", "src\\Doctype.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Diagnostics\\Debug.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Reflection\\FieldInfo.bf", "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\IO\\StreamWriter.bf", "src\\Markup.bf", "src\\XmlBuilder.bf", "test\\src\\XmlTest.bf", "src\\Xml.bf", "src\\XmlElement.bf", "test\\src\\DoctypeTest.bf"]
+
+[MainWindow]
+X = 0
+Y = 0
+Width = 1936
+Height = 1056
+ShowKind = "ShowMaximized"
+
+[MainDockingFrame]
+Type = "DockingFrame"
+SplitType = 2
+
+[[MainDockingFrame.DockedWidgets]]
+RequestedWidth = 350.0
+RequestedHeight = 200.0
+SizePriority = 200.0
+Type = "DockingFrame"
+SplitType = 1
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets]]
+RequestedWidth = 200.0
+RequestedHeight = 200.0
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "Workspace"
+TabWidth = 115.0
+TabIsPinned = false
+Type = "ProjectPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets]]
+IsFillWidget = true
+Permanent = true
+RequestedWidth = 1716.0
+RequestedHeight = 150.0
+SizePriority = 1716.0
+DefaultDocumentsTabbedView = true
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Result.bf"
+TabWidth = 80.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Result.bf"
+CursorPos = 1763
+VertPos = 1530.0
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Debug.bf"
+TabWidth = 84.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Diagnostics\\Debug.bf"
+CursorPos = 3245
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "FieldInfo.bf"
+TabWidth = 94.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Reflection\\FieldInfo.bf"
+CursorPos = 1490
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "StreamWriter.bf"
+TabWidth = 121.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\IO\\StreamWriter.bf"
+CursorPos = 1886
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "String.bf"
+TabWidth = 79.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\String.bf"
+CursorPos = 33502
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "List.bf"
+TabWidth = 64.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Users\\EW\\AppData\\Local\\BeefLang\\BeefLibs\\corlib\\src\\Collections\\List.bf"
+CursorPos = 23233
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlDeserializer.bf"
+TabWidth = 134.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\XmlDeserializer.bf"
+CursorPos = 5971
+VertPos = 2895.0
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "GeneratorTest.bf"
+TabWidth = 127.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "test\\src\\GeneratorTest.bf"
+CursorPos = 485
+ProjectName = "XmlTest"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlSerializer.bf"
+TabWidth = 119.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\XmlSerializer.bf"
+CursorPos = 5346
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlElement.bf"
+TabWidth = 113.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\XmlElement.bf"
+CursorPos = 668
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlBuilder.bf"
+TabWidth = 106.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\XmlBuilder.bf"
+CursorPos = 3212
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "DoctypeValidator.bf"
+TabWidth = 145.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\DoctypeValidator.bf"
+CursorPos = 3988
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "DoctypeTest.bf"
+TabWidth = 116.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "test\\src\\DoctypeTest.bf"
+CursorPos = 2135
+ProjectName = "XmlTest"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Doctype.bf"
+TabWidth = 93.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Doctype.bf"
+CursorPos = 3345
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlVisitor.bf"
+TabWidth = 103.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\XmlVisitor.bf"
+CursorPos = 3274
+VertPos = 1590.0
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Markup.bf"
+TabWidth = 90.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Markup.bf"
+CursorPos = 9595
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlTest.bf"
+TabWidth = 90.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "test\\src\\XmlTest.bf"
+CursorPos = 4372
+ProjectName = "XmlTest"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Xml.bf"
+TabWidth = 67.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Xml.bf"
+CursorPos = 1033
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "XmlReader.bf"
+TabWidth = 108.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\XmlReader.bf"
+CursorPos = 1302
+VertPos = 270.0
+ProjectName = "BeefXml"
+
+[[MainDockingFrame.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 251.0
+Type = "DockingFrame"
+SplitType = 1
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 250.0
+SizePriority = 1918.0
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "Errors"
+TabWidth = 86.0
+TabIsPinned = false
+Type = "ErrorsPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Memory"
+TabWidth = 99.0
+TabIsPinned = false
+Type = "MemoryPanel"
+AutoResize = "Auto_Mul8"
+RequestedWidth = 300.0
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Watch"
+TabWidth = 86.0
+TabIsPinned = false
+Type = "WatchPanel"
+Columns = [{Width = 200.0}, {Width = 200.0}, {Width = 200.0}]
+Items = [""]
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Auto"
+TabWidth = 77.0
+TabIsPinned = false
+Type = "AutoWatchPanel"
+Columns = [{Width = 200.0}, {Width = 200.0}, {Width = 200.0}]
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 250.0
+SizePriority = 1918.0
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Find Results"
+TabWidth = 119.0
+TabIsPinned = false
+Type = "FindResultsPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Threads"
+TabWidth = 97.0
+TabIsPinned = false
+Type = "ThreadPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Call Stack"
+TabWidth = 105.0
+TabIsPinned = false
+Type = "CallStackPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Immediate"
+TabWidth = 111.0
+TabIsPinned = false
+Type = "ImmediatePanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "Output"
+TabWidth = 90.0
+TabIsPinned = false
+Type = "OutputPanel"
+
+[[BookmarkFolders]]
+Title = ""
+
+[OutputFilters]
+ModuleLoadMessages = false
+ModuleUnloadMessages = false
+ProcessExitMessages = false
+ThreadCreateMessages = false
+ThreadExitMessages = false
+SymbolLoadMessages = false
+ProgramOutput = false

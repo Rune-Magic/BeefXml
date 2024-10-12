@@ -1,0 +1,8 @@
+FileVersion = 1
+Dependencies = {corlib = "*", BeefXml = "*"}
+
+[Project]
+Name = "XmlTest"
+TargetType = "BeefTest"
+StartupObject = "XmlTest.Program"
+DefaultNamespace = "Xml.Test"
