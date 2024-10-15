@@ -77,14 +77,28 @@ enum MarkupUri
 
 	public override void ToString(String strBuffer)
 	{
+		mixin Escape(String str)
+		{
+			String copy = scope:mixin .(str.Length);
+			for (let char in str.DecodedChars)
+			{
+				switch (Util.MatchBaseXmlEntity(char))
+				{
+				case .Ok(let val): copy.Append(val);
+				case .Err: copy.Append(char);
+				}
+			}
+			copy
+		}
+
 		switch (this)
 		{
 		case .Public(let publicId, let uri):
-			strBuffer.AppendF($"PUBLIC \"{publicId}\" \"{uri}\">");
+			strBuffer.AppendF($"PUBLIC \"{Escape!(publicId)}\" \"{Escape!(uri)}\">");
 		case .System(let uri):
-			strBuffer.AppendF($"SYSTEM \"{uri}\">");
+			strBuffer.AppendF($"SYSTEM \"{Escape!(uri)}\">");
 		case .Raw(let raw):
-			strBuffer.AppendF($"\"{raw}\"");
+			strBuffer.AppendF($"\"{Escape!(raw)}\"");
 		}
 	}
 }
@@ -104,6 +118,8 @@ class MarkupSource
 			}
 			strBuffer.AppendF($"at line {line+1}:{col+1} in {parent.Name}");
 		}
+
+		public static Self operator--(Self self) => .(self.line, self.col-1, self.parent);
 	}
 
 	public bool Ended => bufferSizeToEnd <= 0 && Stream.EndOfStream;
@@ -204,33 +220,39 @@ class MarkupSource
 		ErrorStream
 			..Write($" {index}\n    ")
 			..WriteLine(currentLine)
-			..Write(scope String(' ', index.col + 5))
+			..Write(scope String(' ', index.col + 4))
 			..WriteLine(scope String('^', length));
+		ErrorStream.Flush();
 	}
 
 	public void Error(StringView errMsg)
 	{
 		ErrorStream..Write("ERROR: ")..Write(errMsg);
-		WriteIndex(CurrentIdx, 1);
+		WriteIndex(CurrentIdx--, 1);
+		Debug.Break();
 	}
 	public void Error(StringView errMsg, params Object[] formatArgs)
 	{
 		ErrorStream..Write("ERROR: ")..Write(errMsg, params formatArgs);
-		WriteIndex(CurrentIdx, 1);
+		WriteIndex(CurrentIdx--, 1);
+		Debug.Break();
 	}
 	public void ErrorNoIndex(StringView errMsg)
 	{
 		ErrorStream..Write("ERROR: ")..WriteLine(errMsg);
+		Debug.Break();
 	}
 	public void ErrorNoIndex(StringView errMsg, params Object[] formatArgs)
 	{
 		[Inline]ErrorNoIndexNoNewLine(errMsg, params formatArgs);
 		ErrorStream.WriteLine();
+		Debug.Break();
 	}
 	[NoShow(true)]
 	internal void ErrorNoIndexNoNewLine(StringView errMsg, params Object[] formatArgs)
 	{
 		ErrorStream..Write("ERROR: ")..Write(errMsg, params formatArgs);
+		ErrorStream.Flush();
 	}
 
 	public void EmptyBuffer()

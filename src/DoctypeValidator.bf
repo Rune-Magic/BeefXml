@@ -18,7 +18,6 @@ class DoctypeValidator : XmlInsertVisitor, this()
 	Queue<HashSet<List<Doctype.ElementContents>>> encounteredFurry = new .(16) ~ DeleteContainerAndItems!(_);
 	HashSet<String> attributes = new .(8) ~ delete _;
 	bool pcdata = false;
-	bool cdata = false;
 	bool root = true;
 	public override Action Visit(ref XmlVisitable node)
 	{
@@ -41,20 +40,16 @@ class DoctypeValidator : XmlInsertVisitor, this()
 			}
 			current = value;
 			pcdata = false;
-			cdata = false;
 			switch (value.contents)
 			{
 			case .PCData: pcdata = true;
-			case .CData: cdata = true;
 			case .Any:
 				pcdata = true;
-				cdata = true;
 			case .AllOf(var list), .AnyOf(out list):
 				for (let child in list)
 					switch (child)
 					{
 					case .PCData: pcdata = true;
-					case .CData: cdata = true;
 					default:
 					}
 			default:
@@ -105,8 +100,6 @@ class DoctypeValidator : XmlInsertVisitor, this()
 					case .Empty, .Any, .Open:
 						Internal.FatalError(.ConstF($"code broken ({nameof(Self)})"));
 					case .PCData:
-						return true;
-					case .CData:
 						return false;
 					case .Child(let child):
 						if (child != name) return false;
@@ -143,7 +136,7 @@ class DoctypeValidator : XmlInsertVisitor, this()
 			encounteredFurry.Add(new .());
 			SetCurrent();
 		case .CharacterData:
-			Try!(Ensure(cdata, "CDATA is not valid here"));
+			Try!(Ensure(pcdata, "PCDATA is not valid here"));
 		case .Attribute(let key, let value):
 			Try!(Ensure(current.attlists.TryGet(key, ?, let match), $"Attribute {key} not found in doctype"));
 			Try!(Ensure(match.type.Matches(value, IDs, IDREFs, Doctype, Pipeline.CurrentHeader.version), $"Attribute value \"{value}\" is not valid here"));

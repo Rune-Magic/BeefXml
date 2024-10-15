@@ -108,7 +108,7 @@ static class Xml
 
 internal static class Util
 {
-	internal static Result<String> MatchBaseXmlEntity(StringView str)
+	public static Result<String> MatchBaseXmlEntity(StringView str)
 	{
 		switch (str.GetHashCode())
 		{
@@ -122,7 +122,7 @@ internal static class Util
 		return .Err;
 	}
 
-	internal static Result<String> MatchBaseXmlEntity(char32 c)
+	public static Result<String> MatchBaseXmlEntity(char32 c)
 	{
 		switch (c)
 		{
@@ -137,7 +137,7 @@ internal static class Util
 	}
 
 	[Comptime]
-	internal static void ParseAndEmitEBNFEnumaration(StringView ebnf, String onFail = """
+	public static void ParseAndEmitEBNFEnumaration(StringView ebnf, String onFail = """
 				source.Error($"char '{c}' is not valid");
 				return .Err;
 			""")

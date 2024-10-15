@@ -17,15 +17,36 @@ class Doctype
 		[NoShow] case Open;
 		case AllOf(List<ElementContents> children);
 		case AnyOf(List<ElementContents> children);
-		case Empty, Any, PCData, CData;
+		case Empty, Any, PCData;
 		case Child(String name);
 		case Optional(ElementContents* element);
 		case OneOrMore(ElementContents* element);
 		case ZeroOrMore(ElementContents* element);
 
-		public static Result<Self> Parse(MarkupSource source, BumpAllocator alloc, XmlVersion version, bool root = true)
+		public static Result<Self> Parse(SourceProvider sourceProvider, BumpAllocator alloc, XmlVersion version, Doctype self, bool root = true)
 		{
-			if (source.Consume('('))
+			self.EntityOverride(version);
+			defer
+			{
+				mixin Package(ElementContents c)
+				{
+					ElementContents *ptr = new:alloc .();
+					*ptr = c;
+					ptr
+				}
+
+				if (!(@return case .Err))
+				{
+					if (sourceProvider.Source.Consume('?'))
+						@return = .Ok(.Optional(Package!(@return.Value)));
+					else if (sourceProvider.Source.Consume('+'))
+						@return = .Ok(.OneOrMore(Package!(@return.Value)));
+					else if (sourceProvider.Source.Consume('*'))
+						@return = .Ok(.ZeroOrMore(Package!(@return.Value)));
+				}
+			}
+
+			if (sourceProvider.Source.Consume('('))
 			{
 				const int8 Type_None = 0;
 				const int8 Type_Or = 1;
@@ -34,51 +55,47 @@ class Doctype
 				int8 type = Type_None;
 				List<ElementContents> output = new:alloc .();
 
-				bool pcdata = false, cdata = false;
+				bool pcdata = false;
 				while (true)
 				{
-					output.Add(Try!(Parse(source, alloc, version, false)));
+					output.Add(Try!(Parse(sourceProvider, alloc, version, self, false)));
 					switch (output.Back)
 					{
 					case .PCData:
 						if (pcdata)
 						{
-							source.Error("Duplicate #PCDATA");
+							sourceProvider.Source.Error("Duplicate #PCDATA");
 							return .Err;
 						}
 						pcdata = true;
-					case .CData:
-						if (cdata)
-						{
-							source.Error("Duplicate #CDATA");
-							return .Err;
-						}
-						cdata = true;
+					when pcdata && type == Type_And:
+						sourceProvider.Source.Error("Cannot mix #PCDATA and other content");
+						return .Err;
 					default:
 					}
-					if (source.Consume(')')) break;
-					if (source.Consume('|'))
+					if (sourceProvider.Source.Consume(')')) break;
+					if (sourceProvider.Source.Consume('|'))
 					{
 						if (type == Type_And)
 						{
-							source.Error("Unexpected '|'");
+							sourceProvider.Source.Error("Unexpected '|'");
 							return .Err;
 						}
 						type = Type_Or;
 						continue;
 					}
-					if (source.Consume(','))
+					if (sourceProvider.Source.Consume(','))
 					{
 						if (type == Type_Or)
 						{
-							source.Error("Unexpected ','");
+							sourceProvider.Source.Error("Unexpected ','");
 							return .Err;
 						}
 						type = Type_And;
 						continue;
 					}
 
-					source.Error($"Unexpected '{source.PeekNext(..?, ?)}'");
+					sourceProvider.Source.Error($"Unexpected '{sourceProvider.Source.PeekNext(..?, ?)}'");
 					return .Err;
 				}
 
@@ -87,7 +104,7 @@ class Doctype
 				case Type_None:
 					if (output.IsEmpty)
 					{
-						source.Error(new:alloc $"Expected element content");
+						sourceProvider.Source.Error(new:alloc $"Expected element content");
 						return .Err;
 					}
 					return .Ok(output[0]);
@@ -100,46 +117,29 @@ class Doctype
 
 			if (root)
 			{
-				if (source.Consume("EMPTY"))
+				if (sourceProvider.Source.Consume("EMPTY"))
 					return .Ok(.Empty);
-				if (source.Consume("ANY"))
+				if (sourceProvider.Source.Consume("ANY"))
 					return .Ok(.Any);
-				source.Error("Expected '(', 'ANY' or 'EMPTY'");
+				sourceProvider.Source.Error("Expected '(', 'ANY' or 'EMPTY'");
 				return .Err;
 			}
 
-			if (source.Consume("#CDATA"))
-				return .Ok(.CData);
-			if (source.Consume("#PCDATA"))
+			if (sourceProvider.Source.Consume("#PCDATA"))
 				return .Ok(.PCData);
 
 			char32 c;
 			String name = new:alloc .(16);
 			while (true)
 			{
-				if (!source.PeekNext(out c, let length)) break;
+				if (!sourceProvider.Source.PeekNext(out c, let length)) break;
 				if (c.IsWhiteSpace || (length == 1 && ",?+<>|()'\"".Contains((char8)c))) break;
-				Util.EnsureNmToken!(c, version, source);
+				Util.EnsureNmToken!(c, version, sourceProvider.Source);
 				name.Append(c);
-				source.MoveBy(length);
+				sourceProvider.Source.MoveBy(length);
 			}
 
-			ElementContents child = .Child(name);
-			mixin Package()
-			{
-				ElementContents *ptr = new:alloc .();
-				*ptr = child;
-				ptr
-			}
-
-			if (source.Consume('?'))
-				return .Ok(.Optional(Package!()));
-			else if (source.Consume('+'))
-				return .Ok(.OneOrMore(Package!()));
-			else if (source.Consume('*'))
-				return .Ok(.ZeroOrMore(Package!()));
-
-			return .Ok(child);
+			return .Ok(.Child(name));
 		}
 
 		public override void ToString(String strBuffer)
@@ -177,7 +177,6 @@ class Doctype
 			case .Any: strBuffer.Append("ANY");
 			case .Empty: strBuffer.Append("EMPTY");
 			case .PCData: strBuffer.Append("#PCDATA");
-			case .CData: strBuffer.Append("#CDATA");
 			case .Open:
 				Internal.FatalError("Cannot convert unset element contents to a string");
 			}
@@ -191,21 +190,21 @@ class Doctype
 			case CData, OneOf(List<String>), Notation(List<String>);
 			case Id, IdRef, IdRefs, NmTokens, NmToken, Entity, Entities;
 
-			public static Result<Self> Parse(MarkupSource source, BumpAllocator alloc, XmlVersion version)
+			public static Result<Self> Parse(SourceProvider sourceProvider, BumpAllocator alloc, XmlVersion version)
 			{
-				bool notation = source.Consume("NOTATION");
-				if (source.Consume('('))
+				bool notation = sourceProvider.Source.Consume("NOTATION");
+				if (sourceProvider.Source.Consume('('))
 				{
 					List<String> options = new:alloc .(8) { new:alloc .(8) };
 					char32 c;
 					while (true)
 					{
-						if (!source.PeekNext(out c, let length))
+						if (!sourceProvider.Source.PeekNext(out c, let length))
 						{
-							source.Error("Expected ')'");
+							sourceProvider.Source.Error("Expected ')'");
 							return .Err;
 						}
-						source.MoveBy(length);
+						sourceProvider.Source.MoveBy(length);
 						if (c == '|')
 						{
 							options.Back.Trim();
@@ -215,16 +214,16 @@ class Doctype
 						if (c == ')') break;
 						if (notation && c.IsWhiteSpace)
 						{
-							if (source.Consume('|'))
+							if (sourceProvider.Source.Consume('|'))
 							{
 								options.Back.TrimStart();
 								options.Add(new:alloc .(8));
 								continue;
 							}
-							source.Error("Expected notation");
+							sourceProvider.Source.Error("Expected notation");
 							return .Err;
 						}
-						Util.EnsureNmToken!(c, version, source);
+						Util.EnsureNmToken!(c, version, sourceProvider.Source);
 						options.Back.Append(c);
 					}
 					if (notation)
@@ -232,24 +231,24 @@ class Doctype
 					return .Ok(.OneOf(options));
 				}
 
-				if (source.Consume("ENTITIES"))
+				if (sourceProvider.Source.Consume("ENTITIES"))
 					return .Ok(.Entities);
-				if (source.Consume("ENTITY"))
+				if (sourceProvider.Source.Consume("ENTITY"))
 					return .Ok(.Entity);
-				if (source.Consume("CDATA"))
+				if (sourceProvider.Source.Consume("CDATA"))
 					return .Ok(.CData);
-				if (source.Consume("NMTOKENS"))
+				if (sourceProvider.Source.Consume("NMTOKENS"))
 					return .Ok(.NmToken);
-				if (source.Consume("NMTOKEN"))
+				if (sourceProvider.Source.Consume("NMTOKEN"))
 					return .Ok(.NmTokens);
-				if (source.Consume("IDREFS"))
+				if (sourceProvider.Source.Consume("IDREFS"))
 					return .Ok(.IdRefs);
-				if (source.Consume("IDREF"))
+				if (sourceProvider.Source.Consume("IDREF"))
 					return .Ok(.IdRef);
-				if (source.Consume("ID"))
+				if (sourceProvider.Source.Consume("ID"))
 					return .Ok(.Id);
 
-				source.Error("Expected attribute type");
+				sourceProvider.Source.Error("Expected attribute type");
 				return .Err;
 			}
 
@@ -333,32 +332,33 @@ class Doctype
 			case Required, Implied;
 			case Value(String), Fixed(String);
 
-			public static Result<Self> Parse(MarkupSource source, Doctype self, AttributeType type, XmlVersion version)
+			public static Result<Self> Parse(SourceProvider sourceProvider, Doctype self, AttributeType type, XmlVersion version)
 			{
-				if (source.Consume("#REQUIRED"))
+				self.EntityOverride(version);
+				if (sourceProvider.Source.Consume("#REQUIRED"))
 					return .Ok(.Required);
-				if (source.Consume("#IMPLIED"))
+				if (sourceProvider.Source.Consume("#IMPLIED"))
 					return .Ok(.Implied);
-				bool isFixed = source.Consume("#FIXED");
+				bool isFixed = sourceProvider.Source.Consume("#FIXED");
 
 				String value = new:(self.alloc) .(8);
-				if (!source.Consume('"'))
+				if (!sourceProvider.Source.Consume('"'))
 				{
-					source.Error("Expected attribute value");
+					sourceProvider.Source.Error("Expected attribute value");
 					return .Err;
 				}
 				char32 c;
 				while (true)
 				{
-					if (!source.PeekNext(out c, let length)) break;
-					source.MoveBy(length);
+					if (!sourceProvider.Source.PeekNext(out c, let length)) break;
+					sourceProvider.Source.MoveBy(length);
 					if (c.IsWhiteSpace || c == '"') break;
 					value.Append(c);
 				}
 
 				if (!type.Matches(value, self.IDs, self.IDREFs, self, version))
 				{
-					source.Error("Default value does not match attribute type");
+					sourceProvider.Source.Error("Default value does not match attribute type");
 					return .Err;
 				}
 
@@ -380,37 +380,43 @@ class Doctype
 			}
 		}
 
-		public static Result<Self> Parse(MarkupSource source, Doctype self, XmlVersion version)
+		public static Result<Self> Parse(SourceProvider sourceProvider, Doctype self, XmlVersion version)
 		{
 			Self output = ?;
-			output.type = Try!(AttributeType.Parse(source, self.alloc, version));
-			if (!source.ConsumeWhitespace())
+			self.EntityOverride(version);
+			output.type = Try!(AttributeType.Parse(sourceProvider, self.alloc, version));
+			if (!sourceProvider.Source.ConsumeWhitespace())
 			{
-				source.Error("Expected attribute type");
+				sourceProvider.Source.Error("Expected attribute type");
 				return .Err;
 			}
-			output.value = Try!(AttributeDefaultValue.Parse(source, self, output.type, version));
+			output.value = Try!(AttributeDefaultValue.Parse(sourceProvider, self, output.type, version));
 			return output;
 		}
 	}
 
-	public struct Element : this(ElementContents contents, Dictionary<String, Attlist> attlists);
-	public struct Entity : this(MarkupUri uri, bool parse, String notation)
+	public enum EntityContents
 	{
+		case Parsed(MarkupUri uri), Notation(String notation, MarkupUri uri), General(String data);
+
 		public Result<void> GetRawData(String strBuffer, MarkupSource source)
 		{
-			if (uri case .Raw(let raw))
+			switch (this)
 			{
-				strBuffer.Append(raw);
+			case .General(let data):
+				strBuffer.Append(data);
+				return .Ok;
+			case .Parsed(var uri), .Notation(?, out uri):
+				let stream = Try!(uri.Open(source));
+				if (stream.ReadStrC(strBuffer) case .Err) { /* We pass because files don't have to end with \0 */ }
+				stream.Close(); delete stream;
 				return .Ok;
 			}
-
-			let stream = Try!(uri.Open(source));
-			if (stream.ReadStrC(strBuffer) case .Err) { /* We pass because files don't have to end with \0 */ }
-			stream.Close(); delete stream;
-			return .Ok;
 		}
 	}
+
+	public struct Entity : this(EntityContents contents, bool parameter, MarkupSource.Index startIndex);
+	public struct Element : this(ElementContents contents, Dictionary<String, Attlist> attlists);
 
 	public Dictionary<String, Element> elements = new:alloc .(16);
 	public Dictionary<String, Entity> entities = new:alloc .(6);
@@ -418,90 +424,169 @@ class Doctype
 
 	HashSet<String> IDs = new:alloc .(6), IDREFs = new:alloc .(6);
 
+	private static SourceProvider sourceProvider = new .() ~ delete _;
+	private static MarkupSource Source
+	{
+		[Inline] get => sourceProvider.Source;
+		[Inline] set => sourceProvider.Source = value;
+	}
+
+	Result<bool> EntityOverride(XmlVersion version)
+	{
+		char8 entityChar;
+		if (Source.Consume('%')) entityChar = '%';
+		else if (Source.Consume('&')) entityChar = '&';
+		else return false;
+		if (Source.Consume('%'))
+		{
+			Source.Error("Expected entity name");
+			return .Err;
+		}
+
+		String name = scope .(8);
+		while (true)
+		{
+			if (!Source.PeekNext(let c, let length))
+			{
+				Source.Error("Expected ';'");
+				return .Err;
+			}
+			Source.MoveBy(length);
+			if (c == ';') break;
+			Util.EnsureNmToken!(c, version, Source);
+			name.Append(c);
+		}
+
+		for (let entity in entities)
+		{
+			if (name != entity.key) continue;
+			switch (entity.value.contents)
+			{
+			case .Parsed(var uri), .Notation(?, out uri):
+				Try!(sourceProvider.OpenSource(uri));
+			case .General(let data):
+				Source = new .(new .(new StringStream(data, .Copy)), entity.key);
+			}
+			return true;
+		}
+
+		Source.Error($"Entity '{name}' doesn't exist");
+		return .Err;
+	}
+
 	public static Result<Self> Parse(MarkupSource source, BumpAllocator allocTo = null, bool inlined = false, XmlVersion version = .V1_0)
 	{
 		Self self = allocTo == null ? new .() : new:allocTo .();
 		HashSet<String> referencedNotations = scope .();
+		sourceProvider.DefaultSource = source;
+
+		mixin Consume(StringView str)
+		{
+			Try!(self.EntityOverride(version));
+			Source.Consume(str)
+		}
+
+		mixin Consume(StringView str1, StringView str2)
+		{
+			Try!(self.EntityOverride(version));
+			Source.Consume(str1, str2)
+		}
+
+		mixin Consume(StringView str1, StringView str2, StringView str3)
+		{
+			Try!(self.EntityOverride(version));
+			Source.Consume(str1, str2, str3)
+		}
+
+		mixin Consume(char8 c)
+		{
+			Try!(self.EntityOverride(version));
+			Source.Consume(c)
+		}
 
 		Result<String> NextWord(StringView name, bool quote = false)
 		{
 			char8 quoteChar = ?;
 			do
 			{
-				if (quote && source.Consume('"')) { quoteChar = '"'; break; }
-				if (quote && source.Consume('\'')) { quoteChar = '\''; break; }
-				if (!quote && (source.ConsumeWhitespace() || name.IsNull) && !source.Consume('>')) break;
-				if (!name.IsNull) source.Error($"Expected {name}");
+				if (quote && Source.Consume('"')) { quoteChar = '"'; break; }
+				if (quote && Source.Consume('\'')) { quoteChar = '\''; break; }
+				if (!Source.Consume('>')) break;
+				if (!name.IsNull) Source.Error($"Expected {name}");
 				return .Err;
 			}
-			String builder = new:(self.alloc) .(8);
+			String builder = new:(self.alloc) .(16);
 			char32 c;
 			while (true)
 			{
-				if (!source.PeekNext(out c, let length) || (!quote && c.IsWhiteSpace))
-					break;
-				source.MoveBy(length);
-				if (c == '>' && !quote)
-				{
-					source.Error("Unexpected '>'");
-					return .Err;
-				}
-				if (c == quoteChar && quote) break;
-				if (quote)
-					Util.EnsureChar!(c, version, source);
-				else
-					Util.EnsureNmToken!(c, version, source);
-				builder.Append(c);
+			if (!Source.PeekNext(out c, let length) || (!quote && c.IsWhiteSpace))
+				break;
+			Source.MoveBy(length);
+			if (c == '>' && !quote)
+			{
+				Source.Error("Unexpected '>'");
+				return .Err;
+			}
+			if (c == quoteChar && quote) break;
+			if (quote)
+				Util.EnsureChar!(c, version, Source);
+			else
+				Util.EnsureNmToken!(c, version, Source);
+			builder.Append(c);
 			}
 			if (!builder.IsEmpty) return builder;
-			if (!name.IsNull) source.Error($"Expected {name}");
+			if (!name.IsNull) Source.Error($"Expected {name}");
 			return .Err;
 		}
 
 		mixin Close()
 		{
-			if (!source.Consume('>'))
+			if (!Consume!('>'))
 			{
-				source.Error("Expected '>'");
+				Source.Error("Expected '>'");
 				return .Err;
 			}
-			continue;
+			continue loop;
 		}
 
-		while (true)
+		loop: while (true)
 		{
-			source.ConsumeWhitespace();
-			if (source.Ended) break;
+			Source.ConsumeWhitespace();
+			if (Source.Ended && !sourceProvider.PopSource()) break;
+			if (inlined && sourceProvider.SourceOverride.IsEmpty && Consume!(']')) break;
 
-			if (inlined && source.Consume(']')) break;
-			if (!source.Consume("<", "!"))
+			if (!Consume!("<", "!"))
 			{
-				source.Error("Expected '<!'");
+				Source.Error("Expected '<!'");
 				return .Err;
 			}
 
-			if (source.Consume("ATTLIST"))
+			if (Consume!("ATTLIST"))
 			{
 				let name = Try!(NextWord("element name"));
-				Element* valuePtr;
-				switch (self.elements.TryAdd(name))
+				while (true)
 				{
-				case .Added(?, out valuePtr):
-					*valuePtr = .(.Open, new:(self.alloc) .(2));
-				case .Exists(?, out valuePtr):
-				}
+					Element* valuePtr;
+					switch (self.elements.TryAdd(name))
+					{
+					case .Added(?, out valuePtr):
+						*valuePtr = .(.Open, new:(self.alloc) .(2));
+					case .Exists(?, out valuePtr):
+					}
 
-				let key = Try!(NextWord("attribute name"));
-				if (valuePtr.attlists.ContainsKey(key))
-				{
-					source.Error($"Attribute {key} of element {name} is already defined");
-					return .Err;
+					let key = Try!(NextWord("attribute name"));
+					if (valuePtr.attlists.ContainsKey(key))
+					{
+						Source.Error($"Attribute {key} of element {name} is already defined");
+						return .Err;
+					}
+					valuePtr.attlists.Add(key, Try!(Attlist.Parse(sourceProvider, self, version)));
+					if (Consume!(">", ""))
+						continue loop;
 				}
-				valuePtr.attlists.Add(key, Try!(Attlist.Parse(source, self, version)));
-				Close!();
 			}
 
-			if (source.Consume("ELEMENT"))
+			if (Consume!("ELEMENT"))
 			{
 				let name = Try!(NextWord("element name"));
 				Element* valuePtr;
@@ -511,55 +596,64 @@ class Doctype
 					valuePtr.attlists = new:(self.alloc) .();
 				case .Exists(?, out valuePtr):
 					if (valuePtr.contents case .Open) break;
-					source.Error($"Element {name} is already defined");
+					Source.Error($"Element {name} is already defined");
 					return .Err;
 				}
 
-				valuePtr.contents = Try!(ElementContents.Parse(source, self.alloc, version));
+				valuePtr.contents = Try!(ElementContents.Parse(sourceProvider, self.alloc, version, self));
 				Close!();
 			}
 
-			if (source.Consume("ENTITY"))
+			if (Consume!("ENTITY"))
 			{
+				bool parameter = Source.Consume('%');
 				let name = Try!(NextWord("entity name"));
-				let value = Try!(MarkupUri.Parse(source, self.alloc, true));
-				bool parseable = !(value case .Raw);
+				let uriIndex = Source.CurrentIdx;
+				let uri = Try!(MarkupUri.Parse(Source, self.alloc, true));
+				bool parseable = !(uri case .Raw);
 				String notation = null;
 				if (!parseable) do
 				{
-					if (!source.Consume("NDATA")) break;
+					if (!Consume!("NDATA")) break;
 					notation = Try!(NextWord("notation"));
 					referencedNotations.Add(notation);
 					parseable = false;
 				}
-				if (self.entities.TryAdd(name, .(value, parseable, notation)))
+				EntityContents contnets;
+				if (uri case .Raw(let raw))
+					contnets = .General(raw);
+				else if (parseable)
+					contnets = .Parsed(uri);
+				else
+					contnets = .Notation(notation, uri);
+				if (self.entities.TryAdd(name, .(contnets, parameter, uriIndex)))
 					Close!();
-				source.Error($"Entity {name} was already defined");
+				Source.Error($"Entity {name} was already defined");
 				return .Err;
 			}
 
-			if (source.Consume("NOTATION"))
+			if (Consume!("NOTATION"))
 			{
 				let name = Try!(NextWord("notation name"));
-				if (self.notations.TryAdd(name, Try!(MarkupUri.Parse(source, self.alloc))))
+				if (self.notations.TryAdd(name, Try!(MarkupUri.Parse(Source, self.alloc))))
 					Close!();
-				source.Error($"Duplicate notation {name}");
+				Source.Error($"Duplicate notation {name}");
 				return .Err;
 			}
 
-			if (source.Consume("--"))
+			if (Consume!("--"))
 			{
-				while (!source.Consume("--", ">"))
-					source.MoveBy(1);
+				while (!Consume!("--", ">"))
+					Source.MoveBy(1);
 				continue;
 			}
 
 			switch (NextWord(null))
 			{
 			case .Err:
-				source.Error($"Unexpected '{source.PeekNext(..?, ?)}'");
+				Source.Error($"Unexpected '{Source.PeekNext(..?, ?)}'");
 			case .Ok(let val):
-				source.Error($"Unexpected '{val}'");
+				Source.Error($"Unexpected '{val}'");
 			}
 			return .Err;
 		}
@@ -567,14 +661,14 @@ class Doctype
 		for (let element in self.elements)
 		{
 			if (!(element.value.contents case .Open)) continue;
-			source.Error($"Element {element.key} was referenced but never defined");
+			Source.Error($"Element {element.key} was referenced but never defined");
 			return .Err;
 		}
 
 		for (let notation in referencedNotations)
 		{
 			if (self.notations.ContainsKey(notation)) continue;
-			source.Error($"Notation {notation} was referenced but never defined");
+			Source.Error($"Notation {notation} was referenced but never defined");
 			return .Err;
 		}
 

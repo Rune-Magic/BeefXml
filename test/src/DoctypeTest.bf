@@ -51,7 +51,7 @@ internal static
 			}
 
 		Test.Assert(doctype.entities.TryGet("entity", ?, let value));
-		Test.Assert(value.uri case .Raw("an entity"));
+		Test.Assert(value.contents case .General("an entity"));
 	}
 
 	[Test]
@@ -60,13 +60,15 @@ internal static
 		const let input = """
 			<?xml version="1.1" encoding="UTF-8"?>
 			<!DOCTYPE root [
-				<!ELEMENT root (child, reference, #CDATA)>
+				<!ELEMENT root (child, reference, #PCDATA)>
 				<!-- comment -->
 				<!ELEMENT child EMPTY>
-				<!ATTLIST child arg ID #IMPLIED>
-				<!ATTLIST child beef_good (yes|no) #FIXED "yes">
+				<!ATTLIST child
+						  arg ID #IMPLIED
+						  beef_good (yes|no) #FIXED "yes">
 				<!ATTLIST reference refed IDREF #REQUIRED>
-				<!ELEMENT reference EMPTY>
+				<!ENTITY % defineReference "<!ELEMENT reference EMPTY>">
+				%defineReference;
 				<!ENTITY entity "some data">
 			]>
 			<root>

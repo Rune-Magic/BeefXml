@@ -29,7 +29,7 @@ interface IXmlSerializable
 
 extension Xml
 {
-	public static Result<void> Serialize<T>(T input, XmlBuilder outBuilder) where T : struct
+	public static Result<void> Serialize<T>(T input, XmlBuilder outBuilder)
 	{
 #unwarn
 		String buffer = scope .(16);
@@ -37,7 +37,7 @@ extension Xml
 		return .Ok;
 	}
 
-	public static Result<void> SerializeDoctype<T>(T input, XmlBuilder outBuilder) where T : struct
+	public static Result<void> SerializeInlineDoctype<T>(T input, XmlBuilder outBuilder)
 	{
 #unwarn
 		String buffer = scope .(16);
@@ -45,7 +45,7 @@ extension Xml
 		return .Ok;
 	}
 
-	public static Result<void> SerializeExternalDoctype<T>(T input, XmlBuilder outBuilder, MarkupUri doctypeUri) where T : struct
+	public static Result<void> SerializeExternalDoctype<T>(T input, XmlBuilder outBuilder, MarkupUri doctypeUri)
 	{
 #unwarn
 		String buffer = scope .(16);
@@ -54,19 +54,17 @@ extension Xml
 		return .Ok;
 	}
 
-	public static Result<void> WriteSerializationDoctype<T>(T input, XmlBuilder outBuilder) where T : struct
+	[Comptime(ConstEval=true)]
+	public static String GetSerializationDoctype<T>()
 	{
-#unwarn
-		String buffer = scope .(16);
-		EmitSerilization<T>(.DoctypeOnly);
-		return .Ok;
+		return EmitSerilization<T>(.DoctypeOnly);
 	}
 
-	[Comptime]
-	private static void EmitSerilization<T>(SerializeEmitMode mode)
+	[Comptime(ConstEval=true)]
+	private static String EmitSerilization<T>(SerializeEmitMode mode)
 	{
 		if (typeof(T).IsGenericParam)
-			return;
+			return .Empty;
 
 		let root = typeof(T).GetName(..scope .(8));
 		Doctype doctype = scope .();
@@ -79,12 +77,15 @@ extension Xml
 		switch (mode)
 		{
 		case .CustomHeader:
+			Compiler.MixinRoot(body);
+			return .Empty;
 		case .InlineDoctype:
 			outBuilder.Write(XmlHeader(.V1_1, .UTF_8, true, doctype, root));
 		case .NoDoctype:
 			outBuilder.Write(XmlHeader(.V1_1, .UTF_8, true, null, root));
 		case .DoctypeOnly:
 			outBuilder.Write(doctype);
+			return string.ToString(..scope .());
 		}
 
 		Compiler.MixinRoot(scope $"""
@@ -94,6 +95,7 @@ extension Xml
 
 			{body}
 			""");
+		return .Empty;
 	}
 
 	private enum SerializeEmitMode
@@ -107,17 +109,34 @@ extension Xml
 	[Comptime]
 	private static void DoEmitSerialization(Type type, StringView depth, String key, bool doDoctype, String outString, Doctype doctype, BumpAllocator alloc)
 	{
-		if (!type.IsValueType)
-			Internal.FatalError(scope $"Only value types can be serialized and deserialized");
-
 		if (type == typeof(void) && !doDoctype)
 			return;
 
+		
 		String attributes = scope .();
 		String children = scope .(128);
 
 		List<Doctype.ElementContents> childrenDoctype = new:alloc .();
 		doctype.elements[key] = .(.AllOf(childrenDoctype), new:alloc .());
+
+		void Nullable(String str)
+		{
+			if (doctype.elements[key].contents != .PCData)
+			{
+				Doctype.ElementContents* copy = new:alloc .();
+				*copy = doctype.elements[key].contents;
+				doctype.elements[key].contents = .AllOf(new:alloc .(1) { .Optional(copy) });
+			}
+			str?.AppendF($"""
+				if ({depth} == null)
+				{{
+					Try!(outBuilder.Write(.OpeningEnd(true)));
+					break;
+				}}
+
+				""");
+		}
+		if (type.IsNullable) Nullable(attributes);
 
 		if (type.IsSubtypeOf(typeof(IXmlSerializable)))
 		{
@@ -126,17 +145,17 @@ extension Xml
 		}
 		else if (type.IsSubtypeOf(typeof(String)))
 		{
-			childrenDoctype.Add(.CData);
+			doctype.elements[key].contents = .PCData; 
 			children.AppendF($"Try!(outBuilder.Write(.CharacterData({depth})));\n");
 		}
 		else if (type.IsSubtypeOf(typeof(StringView)))
 		{
-			childrenDoctype.Add(.CData);
+			doctype.elements[key].contents = .PCData; 
 			children.AppendF($"Try!(outBuilder.Write(.CharacterData(scope .({depth}))));\n");
 		}
 		else if (type.IsPrimitive)
 		{
-			childrenDoctype.Add(.CData);
+			doctype.elements[key].contents = .PCData; 
 			children.AppendF($"""
 				buffer.Clear();
 				{depth}.ToString(buffer);
@@ -149,7 +168,16 @@ extension Xml
 		{
 			if (type.UnderlyingType == typeof(void))
 				Internal.FatalError("Cannot serialize void*");
+			outString..AppendF($"""
+				if ({depth} == null)
+				{{
+					Try!(outBuilder.Write(.OpeningTag("{key}")));
+					Try!(outBuilder.Write(.OpeningEnd(true)));
+				}}
+				else
+				""").Append(' ');
 			DoEmitSerialization(type.UnderlyingType, scope $"(*({depth}))", key, doDoctype, outString, doctype, alloc);
+			Nullable(null);
 			return;
 		}
 		else if (type.IsEnum)
@@ -238,10 +266,10 @@ extension Xml
 					{
 					case typeof(String):
 						attributes.AppendF($"Try!(outBuilder.Write(.Attribute(\"{field.Name}\", {accessor})));\n");
-						return;
+						continue;
 					case typeof(StringView):
 						attributes.AppendF($"Try!(outBuilder.Write(.Attribute(\"{field.Name}\", scope .({accessor}))));\n");
-						return;
+						continue;
 					}
 
 					if (field.FieldType.IsPrimitive)
@@ -252,7 +280,7 @@ extension Xml
 							Try!(outBuilder.Write(.Attribute("{field.Name}", buffer));
 
 							""");
-						return;
+						continue;
 					}
 
 					Internal.FatalError(scope $"Type {field.FieldType} cannot be serialized as an attribute while serializing field {type}.{field.Name}");
@@ -269,6 +297,7 @@ extension Xml
 		}
 
 		outString.AppendF($"""
+			do {{
 			Try!(outBuilder.Write(.OpeningTag("{key}")));
 			{attributes}
 			
@@ -278,7 +307,8 @@ extension Xml
 		{
 			outString.AppendF($"""
 				Try!(outBuilder.Write(.OpeningEnd(true)));
-
+				}}
+				\n
 				""");
 			return;
 		}
@@ -288,6 +318,7 @@ extension Xml
 			{children}
 
 			Try!(outBuilder.Write(.ClosingTag("{key}")));
+			}}
 			\n
 			""");
 	}

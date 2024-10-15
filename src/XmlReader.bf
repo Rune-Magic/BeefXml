@@ -7,7 +7,7 @@ using internal Xml;
 
 namespace Xml;
 
-class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .RequireSemicolon | .Trim | .ValidateChars)
+class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .RequireSemicolon | .Trim | .ValidateChars), SourceProvider
 {
 	public enum Options : uint8
 	{
@@ -34,29 +34,14 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 	}
 
 	BumpAllocator alloc = new .() ~ delete _;
-	Queue<MarkupSource> sourceOverride = new .() ~ delete _;
 
 	Dictionary<String, MarkupUri> parsedEntities = null;
 	Dictionary<String, String> rawEntities = null;
 	Queue<XmlVisitable> cached = new .() ~ delete _;
 
+	public override MarkupSource DefaultSource => source;
+
 	XmlVersion version = .V1_0;
-
-	protected MarkupSource Source
-	{
-		get
-		{
-			if (sourceOverride.IsEmpty)
-				return source;
-			return sourceOverride.Front;
-		}
-
-		set
-		{
-			value.ErrorStream = source.[Friend]ErrorStream;
-			sourceOverride.AddFront(value);
-		}	
-	}
 
 	MarkupSource.Index startIdx = default;
 	public void Error(StringView errMsg, params Object[] formatArgs)
@@ -66,8 +51,9 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 			Source.Error(errMsg, params formatArgs);
 			return;
 		}
-		Source.ErrorNoIndexNoNewLine(errMsg, params formatArgs);
+		Source.[Friend]ErrorNoIndexNoNewLine(errMsg, params formatArgs);
 		source.[Friend]WriteIndex(startIdx, Source.CurrentIdx.col - startIdx.col);
+		Debug.Break();
 	}
 
 	public void Cycle(XmlVisitable node)
@@ -78,7 +64,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 	mixin EnsureNmToken(char32 c)
 	{
 		if (flags.HasFlag(.ValidateChars))
-			Xml.Util.EnsureNmToken!(c, version, Source);
+			Util.EnsureNmToken!(c, version, Source);
 	}
 
 	public Result<XmlHeader> ParseHeader()
@@ -89,7 +75,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 		{
 			if (!Source.Consume(str))
 			{
-				Source.Error($"Expected {str}");
+				Source.Error($"Expected '{str}'");
 				return .Err;
 			}
 		}
@@ -199,13 +185,14 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 
 				for (let entity in output.doctype.entities)
 				{
-					if (entity.value.parse)
-						parsedEntities.Add(entity.key, entity.value.uri);
-					else
+					switch (entity.value.contents)
 					{
-						String buffer = new:alloc .();
-						entity.value.GetRawData(buffer, source);
-						rawEntities.Add(entity.key, buffer);
+					case .Parsed(let uri):
+						parsedEntities.Add(entity.key, uri);
+					case .General(let data):
+						rawEntities.Add(entity.key, data);
+					case .Notation:
+						rawEntities.Add(entity.key, entity.value.contents.GetRawData(..new:alloc .(), source));
 					}
 				}
 
@@ -254,14 +241,9 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 
 		if (Source.Ended)
 		{
-			if (sourceOverride.IsEmpty)
+			if (!PopSource())
 				return .EOF;
-			let src = sourceOverride.PopFront();
 			blockedEntities.PopFront();
-			src.Stream.BaseStream.Close();
-			src.Stream.mOwnsStream = true;
-			delete src.Stream;
-			delete src;
 		}
 		
 		if (inTagDef)
@@ -547,5 +529,45 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 		if (flags.HasFlag(.TrimEnd))
 			builder.TrimEnd();
 		return .CharacterData(builder);
+	}
+}
+
+internal class SourceProvider
+{
+	public Queue<MarkupSource> SourceOverride = new .() ~ delete _;
+	public virtual MarkupSource DefaultSource { get; set; }
+
+	public MarkupSource Source
+	{
+		get
+		{
+			if (SourceOverride.IsEmpty)
+				return DefaultSource;
+			return SourceOverride.Front;
+		}
+
+		set
+		{
+			value.ErrorStream = DefaultSource.[Friend]ErrorStream;
+			SourceOverride.AddFront(value);
+		}
+	}
+
+	public Result<void> OpenSource(MarkupUri uri)
+	{
+		let stream = Try!(uri.Open(DefaultSource));
+		SourceOverride.Add(new .(new .(stream), uri.Name));
+		return .Ok;
+	}
+
+	public bool PopSource()
+	{
+		if (SourceOverride.IsEmpty) return false;
+		let source = SourceOverride.PopFront();
+		source.Stream.BaseStream.Close();
+		source.Stream.[Friend]mOwnsStream = true;
+		delete source.Stream;
+		delete source;
+		return true;
 	}
 }

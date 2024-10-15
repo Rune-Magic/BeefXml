@@ -12,7 +12,7 @@ static
 		public int anInt = 69;
 		public char8 aChar = '*';
 		public Bar someBar = .();
-		public Baz aBaz = .Other(42);
+		public Baz aBaz = .Other(null);
 
 		public struct Bar
 		{
@@ -23,23 +23,24 @@ static
 		public enum Baz
 		{
 			case First, Second;
-			case Other(int);
+			case Other(int*);
 		}
 	}
 
 	[Test]
 	static void TestSerialze()
 	{
-		TestFoo foo = .();decltype({let a = decltype(foo.aBaz).Other(69) case .Other(let p0); p0}) a = 0;
-		XmlBuilder builder = scope .(Console.Out);
-		Xml.SerializeDoctype(foo, builder);
-		StringStream stream = scope .();
-		builder.[Friend]stream = scope .(stream, .UTF8, 64);
-		Xml.Serialize(foo, builder);
-		MarkupSource source = scope .(scope .(stream), "TestFoo");
+		TestFoo foo = .();
+		{
+			StreamWriter outStream = scope .()..Create("dump.xml");
+			XmlBuilder builder = scope .(outStream);
+			Xml.SerializeInlineDoctype(foo, builder);
+		}
+		StreamReader inStream = scope .()..Open("dump.xml");
+		MarkupSource source = scope .(inStream, "dump.xml");
 		XmlReader reader = scope .(source);
 		Test.Assert(Xml.Deserialize<TestFoo>(reader) case .Ok(let val));
 		Test.Assert(val case foo);
-
+		Console.Out.WriteLine(Xml.GetSerializationDoctype<TestFoo>());
 	}
 }

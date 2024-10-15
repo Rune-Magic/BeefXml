@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Collections;
 using System.Diagnostics;
-using internal Xml;
 
 namespace Xml;
 
@@ -21,7 +20,7 @@ class XmlBuilder
 	StreamWriter stream;
 	Options flags;
 
-	public StringView IndentStr { protected get; set; } = "   ";
+	public StringView IndentStr { protected get; set; } = "    ";
 
 	public this(StreamWriter stream, Options options = .Format | .FormatCData)
 	{
@@ -49,11 +48,6 @@ class XmlBuilder
 			Try!(stream.WriteLine());
 	}
 
-	private mixin Write(char32 data)
-	{
-		Try!(stream.Write(Span<uint8>((.)&data, sizeof(char32))));
-	}
-
 	protected Result<void> WriteLine()
 	{
 		if (!flags.HasFlag(.Format))
@@ -66,6 +60,7 @@ class XmlBuilder
 
 	bool onelineCData = false;
 	bool justClosed = false;
+	String tempBuffer = new .(4) ~ delete _;
 	public Result<void> Write(XmlVisitable node)
 	{
 		switch (node)
@@ -83,7 +78,10 @@ class XmlBuilder
 				{
 					switch (Util.MatchBaseXmlEntity(char))
 					{
-					case .Err: Write!(char);
+					case .Err:
+						tempBuffer.Clear();
+						char.ToString(tempBuffer);
+						Write!(tempBuffer);
 					case .Ok(let val): Write!(val);
 					}
 				}
@@ -97,7 +95,10 @@ class XmlBuilder
 				{
 					switch (Util.MatchBaseXmlEntity(char))
 					{
-					case .Err: Write!(char);
+					case .Err:
+						tempBuffer.Clear();
+						char.ToString(tempBuffer);
+						Write!(tempBuffer);
 					case .Ok(let val): Write!(val);
 					}
 				}
@@ -130,6 +131,10 @@ class XmlBuilder
 
 	public Result<void> Write(Doctype doctype)
 	{
+		StringView indentStr = "";
+		if (indent > 0)
+			indentStr = IndentStr;
+
 		bool empty = true;
 		mixin NewLine()
 		{
@@ -137,7 +142,6 @@ class XmlBuilder
 			empty = true;
 		}
 
-		WriteLine!("[");
 		for (let notation in doctype.notations)
 		{
 			empty = false;
@@ -149,9 +153,17 @@ class XmlBuilder
 		for (let entity in doctype.entities)
 		{
 			empty = false;
-			Try!(stream.Write($"{IndentStr}<!ENTITY {entity.key} {entity.value.uri}"));
-			if (entity.value.notation != null)
-				Try!(stream.Write($" NDATA {entity.value.notation}"));
+			Try!(stream.Write($"{IndentStr}<!ENTITY "));
+			if (entity.value.parameter) Write!("% ");
+			switch (entity.value.contents)
+			{
+			case .General(let data):
+				Try!(stream.Write($"{entity.key} {MarkupUri.Raw(data)}"));
+			case .Notation(let notation, let uri):
+				Try!(stream.Write($"{entity.key} {uri} NDATA {MarkupUri.Raw(notation)}"));
+			case .Parsed(let uri):
+				Try!(stream.Write($"{entity.key} {uri}"));
+			}
 			WriteLine!(">");
 		}
 		NewLine!();
@@ -160,7 +172,38 @@ class XmlBuilder
 		{
 			NewLine!();
 			empty = false;
-			Try!(stream.Write($"{IndentStr}<!ELEMENT {element.key} {element.value.contents}>"));
+			element: do
+			{
+				Try!(stream.Write($"{IndentStr}<!ELEMENT {element.key} "));
+				switch (element.value.contents)
+				{
+				case .PCData:
+					Write!("(#PCDATA)>");
+					break element;
+				case .Child(let name):
+					Try!(stream.Write($"({name})>"));
+				case .Optional(let element):
+					if (element case .Child(let name))
+					{
+						Try!(stream.Write($"({name})?>"));
+						break element;
+					}
+				case .ZeroOrMore(let element):
+					if (element case .Child(let name))
+					{
+						Try!(stream.Write($"({name})*>"));
+						break element;
+					}
+				case .OneOrMore(let element):
+					if (element case .Child(let name))
+					{
+						Try!(stream.Write($"({name})+>"));
+						break element;
+					}
+				default:
+				}
+				Try!(stream.Write($"{element.value.contents}>"));
+			}
 			WriteLine!();
 			for (let attlist in element.value.attlists)
 			{
@@ -176,7 +219,7 @@ class XmlBuilder
 	{
 		if (!flags.HasFlag(.Format)) IndentStr = "";
 
-		Write!("<?xml \"version\"=\"");
+		Write!("<?xml version=\"");
 		switch (header.version)
 		{
 		case .V1_0: Write!("1.0");
@@ -184,7 +227,7 @@ class XmlBuilder
 		case .Unknown(let p0): Write!(p0);
 		}
 
-		Write!("\" \"encoding\"=\"");
+		Write!("\" encoding=\"");
 		switch (header.encoding)
 		{
 		case .UTF_8: Write!("UTF-8");
@@ -192,7 +235,7 @@ class XmlBuilder
 		case .Other(let p0): Write!(p0);
 		}
 
-		Try!(stream.Write("\" \"standalone\"=\"{}\"?>", header.standalone ? "yes" : "no"));
+		Try!(stream.Write("\" standalone=\"{}\"?>", header.standalone ? "yes" : "no"));
 
 		if (header.doctype == null && customUri == null) return .Ok;
 
@@ -211,8 +254,12 @@ class XmlBuilder
 			return .Ok;
 		}
 
+		indent++;
+		WriteLine!("[");
 		Try!(Write(header.doctype));
 		Write!("]>");
+		indent--;
+
 		return .Ok;
 	}
 
