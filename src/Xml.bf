@@ -136,8 +136,8 @@ internal static class Util
 		return .Err;
 	}
 
-	public const let NmTokenStartCharEBNF = "";
-	public const let NmTokenCharEBNF = NmTokenStartCharEBNF + "";
+	public const let NmTokenStartCharEBNF = "':'' | [A-Z] | '_' | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] | [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] | [#x10000-#xEFFFF]";
+	public const let NmTokenCharEBNF = NmTokenStartCharEBNF + "'-' | '.' | [0-9] | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]";
 
 	[Comptime]
 	public static void ParseAndEmitEBNFEnumaration(StringView ebnf, String onFail = """
@@ -153,7 +153,7 @@ internal static class Util
 			{
 				if (!from.StartsWith("#x")) return .Err;
 				from.Remove(0, 2);
-				return .Ok(.Parse(from, .Hex));
+				return .Ok(.Parse(from));
 			}
 
 			if (element.StartsWith('\''))
@@ -209,12 +209,15 @@ internal static class Util
 		Compiler.MixinRoot(builder);
 	}
 
-	public static mixin EnsureNmToken(char32 c, XmlVersion version, MarkupSource source)
+	public static mixin EnsureNmToken(char32 c, XmlVersion version, MarkupSource source, bool firstChar)
 	{
 		if (!(version case .Unknown))
-			ParseAndEmitEBNFEnumaration(
-				"':' | [A-Z] | '_' | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] | [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] | [#x10000-#xEFFFF] | '-' | '.' | [0-9] | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]"
-			);
+		{
+			if (firstChar)
+				ParseAndEmitEBNFEnumaration(NmTokenStartCharEBNF);
+			else
+				ParseAndEmitEBNFEnumaration(NmTokenCharEBNF);
+		}
 	}
 
 	public static mixin EnsureChar(char32 c, XmlVersion version, MarkupSource source)
@@ -222,13 +225,9 @@ internal static class Util
 		switch (version)
 		{
 		case .V1_0:
-			ParseAndEmitEBNFEnumaration(
-				"#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]"
-			);
+			ParseAndEmitEBNFEnumaration("#x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]");
 		case .V1_1:
-			ParseAndEmitEBNFEnumaration(
-				"[#x1-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]"
-			);
+			ParseAndEmitEBNFEnumaration("[#x1-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]");
 		default:
 		}
 	}
