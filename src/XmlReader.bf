@@ -62,10 +62,10 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 		cached.Add(node);
 	}
 
-	mixin EnsureNmToken(char32 c)
+	mixin EnsureNmToken(char32 c, bool firstChar)
 	{
 		if (flags.HasFlag(.ValidateChars))
-			Util.EnsureNmToken!(c, version, Source);
+			Util.EnsureNmToken!(c, version, Source, firstChar);
 	}
 
 	public Result<XmlHeader> ParseHeader()
@@ -260,6 +260,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 
 			String name = new:alloc .();
 			char32 c;
+			bool firstChar = true;
 			Source.ConsumeWhitespace();
 			while (true)
 			{
@@ -269,7 +270,8 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 				if (c.IsWhiteSpace || c == '=')
 					break;
 
-				EnsureNmToken!(c);
+				EnsureNmToken!(c, firstChar);
+				firstChar = false;
 
 				name.Append(c);
 				Source.MoveBy(length);
@@ -314,7 +316,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 					if (c.IsWhiteSpace || c == '/' || c == '>')
 						break;
 
-					EnsureNmToken!(c);
+					EnsureNmToken!(c, first);
 
 					first = false;
 					builder.Append(c);
@@ -356,6 +358,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 			char32 c;
 			bool digit = false, hex = false;
 			int i = 0;
+			bool firstChar = true;
 			Source.MoveBy(1);
 			loop: while (true)
 			{
@@ -403,7 +406,8 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 						continue;
 					}
 
-					EnsureNmToken!(c);
+					EnsureNmToken!(c, firstChar);
+					firstChar = false;
 					builder.Append(c);
 					continue;
 				}

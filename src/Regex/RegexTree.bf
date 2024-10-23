@@ -3,6 +3,9 @@ using System.Text;
 using System.Collections;
 using System.Diagnostics;
 
+using Xml;
+using internal Xml;
+
 namespace Regex;
 
 abstract class RegexTreeNode
@@ -170,44 +173,52 @@ class RegexPredefinedNode : RegexTreeNode
 		if (string.IsEmpty) return .Err;
 		(let c, let length) = UTF8.Decode(string.Ptr, string.Length);
 
-		mixin ConsumeIf(bool condition)
+		mixin Assert(bool condition)
 		{
-			if (condition)
-				return .Ok(length);
-			return .Err;
+			if (!condition)
+				return .Err;
 		}
 
 		switch (type)
 		{
-		case .Any:			ConsumeIf!(c != '\n' && c != '\f' && length == 1);
-		case .Upper:		ConsumeIf!(c.IsUpper);
-		case .Lower:		ConsumeIf!(c.IsLower);
-		case .Letter:		ConsumeIf!(c.IsLetter);
-		case .AlphaNumeric:	ConsumeIf!(c.IsLetterOrDigit);
-		case .Digit:		ConsumeIf!(c.IsNumber);
-		case .HexDigit:		ConsumeIf!(c.IsNumber || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
-		case .OctalDigit:	ConsumeIf!(c >= '0' && c <= '7');
-		case .Punctuation:	ConsumeIf!("-!\"#$%&'()*+,./:;<=>?@[]^_`{|}~".Contains(string[0]));
-		case .SpaceOrTab:	ConsumeIf!(c == ' ' || c == '\t');
-		case .Whitespace:	ConsumeIf!(c.IsWhiteSpace);
-		case .Control:		ConsumeIf!((c >= 0 && c <= (.)0x1F) || c == (.)0x7F);
+		case .Any:			Assert!(c != '\n' && c != '\f' && length == 1);
+		case .Upper:		Assert!(c.IsUpper);
+		case .Lower:		Assert!(c.IsLower);
+		case .Letter:		Assert!(c.IsLetter);
+		case .AlphaNumeric:	Assert!(c.IsLetterOrDigit);
+		case .Digit:		Assert!(c.IsNumber);
+		case .HexDigit:		Assert!(c.IsNumber || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+		case .OctalDigit:	Assert!(c >= '0' && c <= '7');
+		case .Punctuation:	Assert!("-!\"#$%&'()*+,./:;<=>?@[]^_`{|}~".Contains(string[0]));
+		case .SpaceOrTab:	Assert!(c == ' ' || c == '\t');
+		case .Whitespace:	Assert!(c.IsWhiteSpace);
+		case .Control:		Assert!((c >= 0 && c <= (.)0x1F) || c == (.)0x7F);
 		case .PrintedLetterOrSpace:
 			if (c == ' ') return .Ok(length);
 			fallthrough;
-		case .PrintedLetter:	ConsumeIf!(c != ' ' && !((c >= 0 && c <= (.)0x1F) || c == (.)0x7F));
-		case .WordCharacter:	ConsumeIf!( c.IsLetterOrDigit || c == '_');
-		case .NotWordCharacter:	ConsumeIf!(!c.IsLetterOrDigit && c != '_');
-		case .NotDigit:			ConsumeIf!(!c.IsNumber);
+		case .PrintedLetter:	Assert!(c != ' ' && !((c >= 0 && c <= (.)0x1F) || c == (.)0x7F));
+		case .WordCharacter:	Assert!( c.IsLetterOrDigit || c == '_');
+		case .NotWordCharacter:	Assert!(!c.IsLetterOrDigit && c != '_');
+		case .NotDigit:			Assert!(!c.IsNumber);
 
 		case .NewLine:
 			if (length != 1) return .Err;
 			if (string.Length >= 2 && string[0] == '\r' && string[1] == '\n') return .Ok(2);
-			ConsumeIf!(c == '\n');
+			Assert!(c == '\n');
 		case .NotNewLine:
 			if (length != 1) return .Ok(length);
 			if (string.Length >= 2 && string[0] == '\r' && string[1] == '\n') return .Err;
-			ConsumeIf!(c != '\n');
+			Assert!(c != '\n');
+
+		case .XmlNmTokenChar:
+			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenCharEBNF, "return .Err;");
+		case .XmlNmTokenStartChar:
+			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenStartCharEBNF, "return .Err;");
+		case .NotXmlNmTokenChar:
+		case .NotXmlNmTokenStartChar:
 		}
+
+		return .Ok(length);
 	}
 
 	public override void ToString(String strBuffer)

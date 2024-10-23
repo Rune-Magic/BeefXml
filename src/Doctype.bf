@@ -129,12 +129,14 @@ class Doctype
 				return .Ok(.PCData);
 
 			char32 c;
+			bool firstChar = true;
 			String name = new:alloc .(16);
 			while (true)
 			{
 				if (!sourceProvider.Source.PeekNext(out c, let length)) break;
 				if (c.IsWhiteSpace || (length == 1 && ",?+<>|()'\"".Contains((char8)c))) break;
-				Util.EnsureNmToken!(c, version, sourceProvider.Source);
+				Util.EnsureNmToken!(c, version, sourceProvider.Source, firstChar);
+				firstChar = false;
 				name.Append(c);
 				sourceProvider.Source.MoveBy(length);
 			}
@@ -197,6 +199,7 @@ class Doctype
 				{
 					List<String> options = new:alloc .(8) { new:alloc .(8) };
 					char32 c;
+					bool firstChar = true;
 					while (true)
 					{
 						if (!sourceProvider.Source.PeekNext(out c, let length))
@@ -223,7 +226,8 @@ class Doctype
 							sourceProvider.Source.Error("Expected notation");
 							return .Err;
 						}
-						Util.EnsureNmToken!(c, version, sourceProvider.Source);
+						Util.EnsureNmToken!(c, version, sourceProvider.Source, firstChar);
+						firstChar = false;
 						options.Back.Append(c);
 					}
 					if (notation)
@@ -443,6 +447,7 @@ class Doctype
 			return .Err;
 		}
 
+		bool firstChar= true;
 		String name = scope .(8);
 		while (true)
 		{
@@ -453,7 +458,8 @@ class Doctype
 			}
 			Source.MoveBy(length);
 			if (c == ';') break;
-			Util.EnsureNmToken!(c, version, Source);
+			Util.EnsureNmToken!(c, version, Source, firstChar);
+			firstChar = false;
 			name.Append(c);
 		}
 
@@ -517,22 +523,24 @@ class Doctype
 			}
 			String builder = new:(self.alloc) .(16);
 			char32 c;
+			bool firstChar = true;
 			while (true)
 			{
-			if (!Source.PeekNext(out c, let length) || (!quote && c.IsWhiteSpace))
-				break;
-			Source.MoveBy(length);
-			if (c == '>' && !quote)
-			{
-				Source.Error("Unexpected '>'");
-				return .Err;
-			}
-			if (c == quoteChar && quote) break;
-			if (quote)
-				Util.EnsureChar!(c, version, Source);
-			else
-				Util.EnsureNmToken!(c, version, Source);
-			builder.Append(c);
+				if (!Source.PeekNext(out c, let length) || (!quote && c.IsWhiteSpace))
+					break;
+				Source.MoveBy(length);
+				if (c == '>' && !quote)
+				{
+					Source.Error("Unexpected '>'");
+					return .Err;
+				}
+				if (c == quoteChar && quote) break;
+				if (quote)
+					Util.EnsureChar!(c, version, Source);
+				else
+					Util.EnsureNmToken!(c, version, Source, firstChar);
+				firstChar = false;
+				builder.Append(c);
 			}
 			if (!builder.IsEmpty) return builder;
 			if (!name.IsNull) Source.Error($"Expected {name}");

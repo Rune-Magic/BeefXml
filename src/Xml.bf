@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Diagnostics;
 using System.Collections;
+using System.Globalization;
 
 namespace Xml;
 
@@ -137,7 +138,7 @@ internal static class Util
 	}
 
 	public const let NmTokenStartCharEBNF = "':'' | [A-Z] | '_' | [a-z] | [#xC0-#xD6] | [#xD8-#xF6] | [#xF8-#x2FF] | [#x370-#x37D] | [#x37F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD] | [#x10000-#xEFFFF]";
-	public const let NmTokenCharEBNF = NmTokenStartCharEBNF + "'-' | '.' | [0-9] | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]";
+	public const let NmTokenCharEBNF = NmTokenStartCharEBNF + "| '-' | '.' | [0-9] | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]";
 
 	[Comptime]
 	public static void ParseAndEmitEBNFEnumaration(StringView ebnf, String onFail = """
@@ -153,7 +154,7 @@ internal static class Util
 			{
 				if (!from.StartsWith("#x")) return .Err;
 				from.Remove(0, 2);
-				return .Ok(.Parse(from));
+				return .Ok(.Parse(from, .Hex));
 			}
 
 			if (element.StartsWith('\''))
