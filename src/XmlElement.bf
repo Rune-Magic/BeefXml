@@ -34,9 +34,9 @@ class XmlElement
 			switch (node)
 			{
 			case .OpeningTag(let name):
-				XmlElement next = new:(Pipeline.CurrentReader.[Friend]alloc) .() {
-					Children = new:(Pipeline.CurrentReader.[Friend]alloc) .(),
-					Attributes = new:(Pipeline.CurrentReader.[Friend]alloc) .(),
+				XmlElement next = new:(Pipeline.Reader.[Friend]alloc) .() {
+					Children = new:(Pipeline.Reader.[Friend]alloc) .(),
+					Attributes = new:(Pipeline.Reader.[Friend]alloc) .(),
 					Name = name,
 					PrecedingText = lastCdata,
 				};

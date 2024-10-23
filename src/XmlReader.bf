@@ -33,7 +33,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 		Trim = .TrimCData | .TrimLines,
 	}
 
-	BumpAllocator alloc = new .() ~ delete _;
+	internal BumpAllocator alloc = new .() ~ delete _;
 
 	Dictionary<String, MarkupUri> parsedEntities = null;
 	Dictionary<String, String> rawEntities = null;
@@ -56,6 +56,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 		Debug.Break();
 	}
 
+	/// will make the passed node returned by the next ParseNext call
 	public void Cycle(XmlVisitable node)
 	{
 		cached.Add(node);

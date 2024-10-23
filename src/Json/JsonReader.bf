@@ -14,7 +14,7 @@ class JsonReader : this(MarkupSource source, Options flags = .None)
 		DisallowNull = 2,
 	}
 
-	BumpAllocator alloc = new .() ~ delete _;
+	internal BumpAllocator alloc = new .() ~ delete _;
 	MarkupSource.Index startIdx = default;
 
 	public void Error(StringView str, params Object[] args)

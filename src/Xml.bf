@@ -136,6 +136,9 @@ internal static class Util
 		return .Err;
 	}
 
+	public const let NmTokenStartCharEBNF = "";
+	public const let NmTokenCharEBNF = NmTokenStartCharEBNF + "";
+
 	[Comptime]
 	public static void ParseAndEmitEBNFEnumaration(StringView ebnf, String onFail = """
 				source.Error($"char '{c}' is not valid");

@@ -26,6 +26,36 @@ enum JsonElement
 	public static operator JsonElement (bool lhs) => .Bool(lhs);
 	public static operator JsonElement (int lhs) => .Int(lhs);
 	public static operator JsonElement (double lhs) => .Float(lhs);
+
+	public ref JsonElement this[int idx]
+	{
+		get
+		{
+			Runtime.Assert(this case .Array(let array));
+			return ref array[idx];
+		}
+
+		set
+		{
+			Runtime.Assert(this case .Array(let array));
+			array[idx] = value;
+		}
+	}
+
+	public ref JsonElement this[String key]
+	{
+		get
+		{
+			Runtime.Assert(this case .Object(let object));
+			return ref object[key];
+		}
+
+		set
+		{
+			Runtime.Assert(this case .Object(let object));
+			object[key] = value;
+		}
+	}
 }
 
 static class Json

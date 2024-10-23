@@ -145,7 +145,7 @@ class XmlBuilder
 		for (let notation in doctype.notations)
 		{
 			empty = false;
-			Try!(stream.Write($"{IndentStr}<!NOTATION {notation.key} {notation.value}>"));
+			Try!(stream.Write($"{indentStr}<!NOTATION {notation.key} {notation.value}>"));
 			WriteLine!();
 		}
 		NewLine!();
@@ -153,7 +153,7 @@ class XmlBuilder
 		for (let entity in doctype.entities)
 		{
 			empty = false;
-			Try!(stream.Write($"{IndentStr}<!ENTITY "));
+			Try!(stream.Write($"{indentStr}<!ENTITY "));
 			if (entity.value.parameter) Write!("% ");
 			switch (entity.value.contents)
 			{
@@ -174,7 +174,7 @@ class XmlBuilder
 			empty = false;
 			element: do
 			{
-				Try!(stream.Write($"{IndentStr}<!ELEMENT {element.key} "));
+				Try!(stream.Write($"{indentStr}<!ELEMENT {element.key} "));
 				switch (element.value.contents)
 				{
 				case .PCData:
@@ -207,7 +207,7 @@ class XmlBuilder
 			WriteLine!();
 			for (let attlist in element.value.attlists)
 			{
-				Try!(stream.Write($"{IndentStr}<!ATTLIST {element.key} {attlist.key} {attlist.value.type} {attlist.value.value}>"));
+				Try!(stream.Write($"{indentStr}<!ATTLIST {element.key} {attlist.key} {attlist.value.type} {attlist.value.value}>"));
 				WriteLine!();
 			}
 		}

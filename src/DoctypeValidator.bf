@@ -35,7 +35,7 @@ class DoctypeValidator : XmlInsertVisitor, this()
 			currentName = TagDepth.Back;
 			if (!Doctype.elements.TryGetRef(currentName, ?, let value))
 			{
-				Pipeline.CurrentReader.Error($"Element {currentName} not found in doctype");
+				Pipeline.Reader.Error($"Element {currentName} not found in doctype");
 				return .Err;
 			}
 			current = value;
@@ -62,7 +62,7 @@ class DoctypeValidator : XmlInsertVisitor, this()
 		{
 			if (!condition)
 			{
-				Pipeline.CurrentReader.Error(errorMsg, params args);
+				Pipeline.Reader.Error(errorMsg, params args);
 				return .Err;
 			}
 			return .Ok;
@@ -87,7 +87,7 @@ class DoctypeValidator : XmlInsertVisitor, this()
 			if (!Doctype.elements.ContainsKey(name))
 			{
 				if (pcdata) break;
-				Pipeline.CurrentReader.Error($"Element {name} not found in doctype");
+				Pipeline.Reader.Error($"Element {name} not found in doctype");
 				return .Error;
 			}
 
@@ -179,7 +179,7 @@ class DoctypeValidator : XmlInsertVisitor, this()
 					for (let child in children)
 						if (!Validate(child))
 						{
-							Pipeline.CurrentReader.Error($"All of {contents} must be present in {currentName}");
+							Pipeline.Reader.Error($"All of {contents} must be present in {currentName}");
 							return false;
 						}
 					return true;

@@ -93,7 +93,7 @@ class XmlVisitorPipeline
 	public StreamWriter ErrorStream { protected get; set; } = Console.Error;
 
 	public XmlHeader CurrentHeader { get; private set; }
-	public XmlReader CurrentReader { get; private set; }
+	public XmlReader Reader { get; private set; }
 
 	protected XmlVisitor[] pipeline ~ DeleteContainerAndItems!(_);
 	protected List<String> tagDepth = new .(16) ~ delete _;
@@ -115,7 +115,7 @@ class XmlVisitorPipeline
 	public Result<void> Run(XmlReader reader)
 	{
 		CurrentHeader = Try!(reader.ParseHeader());
-		CurrentReader = reader;
+		Reader = reader;
 
 		delegate void(XmlVisitable) queueNext = scope => reader.Cycle;
 

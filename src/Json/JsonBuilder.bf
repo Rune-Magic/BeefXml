@@ -38,7 +38,7 @@ class JsonBuilder : this(StreamWriter stream, Options flags = .Format)
 		case .String(let val): Try!(stream.Write(val.Quote(..scope .())));
 
 		case .Colon: Try!(stream.Write(": "));
-		case .Comma: Try!(stream.Write(", ")); WriteLine!();
+		case .Comma: Try!(stream.Write(",")); WriteLine!();
 		case .EOF: WriteLine!();
 
 		case .LBracket:
