@@ -66,6 +66,24 @@ enum XmlVisitable
 			strBuffer.Append("end of file");
 		}
 	}
+
+	/// removes the specified namespace from the identifier and returns if the namespace was present.
+	/// if the visitable doesn't have a nmtoken this method will do nothing and always return true.
+	public bool RemoveNamespace(StringView Namespace)
+	{
+		switch (this)
+		{
+		case .OpeningTag(var str), .ClosingTag(out str), .Attribute(out str, ?):
+			if (str.StartsWith(Namespace) && str.Length != Namespace.Length && str[Namespace.Length] == ':')
+			{
+				str.Remove(0, Namespace.Length+1);
+				return true;
+			}
+			return false;
+		default:
+			return true;
+		}
+	}
 }
 
 enum XmlVersion

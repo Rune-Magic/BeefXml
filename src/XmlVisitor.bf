@@ -16,7 +16,7 @@ namespace Xml;
 ///
 /// 	public override Result<void> Visit(XmlVisitable node)
 /// 	{
-///			Console.WriteLine($"{TagDpth} -> {node}");
+///			Console.WriteLine($"{TagDepth} -> {node}");
 /// 	}
 /// }
 ///
@@ -48,24 +48,31 @@ abstract class XmlVisitor
 	}
 
 	/// eg. for <Foo><Bar><Baz> would be ("Foo", "Bar", "Baz")
-	protected volatile List<String> TagDepth { get; internal set; }
-	protected volatile MarkupSource CurrentSource { get; internal set; }
-	protected volatile XmlVisitorPipeline Pipeline { get; internal set; }
+	protected List<String> TagDepth { get; internal set; }
+	protected MarkupSource CurrentSource { get; internal set; }
+	protected XmlVisitorPipeline Pipeline { get; internal set; }
+	protected BumpAllocator Alloc => Pipeline.Reader.[Friend]alloc;
 
 	public abstract Options Flags { get; }
 
 	public abstract Action Visit(ref XmlVisitable node);
 	public virtual void Init() {}
+
+	protected mixin Try(var result)
+	{
+		if (result case .Err)
+			return .Error;
+	}
 }
 
 /// allows you to insert visitables into the pipeline
 abstract class XmlInsertVisitor : XmlVisitor
 {
 	/// will run the remaining visitiors on the input before continuing with the current visitable
-	protected delegate void (XmlVisitable) InsertBeforeCurrent;
+	protected delegate void(XmlVisitable) InsertBeforeCurrent;
 
 	/// will act as if the current visitable were followed by the provided one
-	protected delegate void (XmlVisitable) InsertAfterCurrent;
+	protected delegate void(XmlVisitable) InsertAfterCurrent;
 }
 
 abstract class XmlAsyncVisitor : XmlVisitor

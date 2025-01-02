@@ -37,9 +37,15 @@ class JsonBuilder : this(StreamWriter stream, Options flags = .Format)
 		case .Float(let val): Try!(stream.Write(val.ToString(..scope .())));
 		case .String(let val): Try!(stream.Write(val.Quote(..scope .())));
 
-		case .Colon: Try!(stream.Write(": "));
-		case .Comma: Try!(stream.Write(",")); WriteLine!();
-		case .EOF: WriteLine!();
+		case .Colon:
+			Try!(stream.Write(":"));
+			if (flags.HasFlag(.Format))
+				Try!(stream.Write(" "));
+		case .Comma:
+			Try!(stream.Write(","));
+			WriteLine!();
+		case .EOF:
+			WriteLine!();
 
 		case .LBracket:
 			Try!(stream.Write("["));

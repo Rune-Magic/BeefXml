@@ -358,7 +358,6 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 			char32 c;
 			bool digit = false, hex = false;
 			int i = 0;
-			bool firstChar = true;
 			Source.MoveBy(1);
 			loop: while (true)
 			{
@@ -406,8 +405,8 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 						continue;
 					}
 
-					EnsureNmToken!(c, firstChar);
-					firstChar = false;
+					if (!hex && !digit)
+						EnsureNmToken!(c, i == 0);
 					builder.Append(c);
 					continue;
 				}

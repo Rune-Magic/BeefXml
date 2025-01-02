@@ -47,4 +47,27 @@ static
 		JsonBuilder builder = scope .(Console.Out);
 		builder.Write(output);
 	}
+
+	class TestBar
+	{
+		public int a = 25;
+		public double b;
+	}
+
+	[Test]
+	static void TestJsonSerialze()
+	{
+		const let input = """
+			{
+				"b": 15.2
+			}
+			""";
+
+		StringStream stream = scope .(input, .Reference);
+		MarkupSource source = scope .(scope .(stream), "input");
+		JsonReader reader = scope .(source);
+		let bar = Json.Deserialize<TestBar>(reader, false).Get();
+		Test.Assert(bar.a == 25);
+		Test.Assert(bar.b == 15.2);
+	}
 }

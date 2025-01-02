@@ -103,6 +103,12 @@ enum MarkupUri
 	}
 }
 
+struct Indexed<T> : this(T value, MarkupSource.Index start, MarkupSource.Index end)
+{
+	[Inline] public static implicit operator T(Self s) => s.value;
+	[Inline] public static implicit T operator->(Self s) => s.value;
+}
+
 /// represents parse-able text source
 class MarkupSource
 {

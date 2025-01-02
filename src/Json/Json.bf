@@ -14,12 +14,12 @@ enum JsonToken
 	case RBracket, LBracket;
 	case Comma, Colon, EOF;
 	case String(String string);
-	case Int(int), Float(double);
+	case Int(int64), Float(double);
 }
 
 enum JsonElement
 {
-	case Int(int), Float(double), String(String), Bool(bool), Null;
+	case Int(int64), Float(double), String(String), Bool(bool), Null;
 	case Array(List<JsonElement>), Object(Dictionary<String, JsonElement>);
 
 	public static operator JsonElement (String lhs) => lhs == null ? .Null : .String(lhs);

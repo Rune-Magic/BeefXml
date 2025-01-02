@@ -28,7 +28,7 @@ static
 	}
 
 	[Test]
-	static void TestSerialze()
+	static void TestXmlSerialze()
 	{
 		TestFoo foo = .();
 		{

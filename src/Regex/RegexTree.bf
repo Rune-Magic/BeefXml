@@ -28,6 +28,7 @@ abstract class RegexTreeNode
 class RegexSequence : RegexTreeNode
 {
 	public List<RegexTreeNode> children;
+	public String name = null;
 	protected override Result<int> Consume(StringView string, ref PassInfo info)
 	{
 		int start = info.offset;
@@ -211,11 +212,15 @@ class RegexPredefinedNode : RegexTreeNode
 			Assert!(c != '\n');
 
 		case .XmlNmTokenChar:
-			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenCharEBNF, "return .Err;");
+			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenCharEBNF, "return .Ok(length);");
+			return .Err;
 		case .XmlNmTokenStartChar:
-			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenStartCharEBNF, "return .Err;");
+			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenStartCharEBNF, "return .Ok(length);");
+			return .Err;
 		case .NotXmlNmTokenChar:
+			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenCharEBNF, "return .Err;");
 		case .NotXmlNmTokenStartChar:
+			Util.ParseAndEmitEBNFEnumaration(Util.NmTokenStartCharEBNF, "return .Err;");
 		}
 
 		return .Ok(length);

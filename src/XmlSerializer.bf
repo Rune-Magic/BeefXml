@@ -9,11 +9,11 @@ namespace Xml;
 
 /// won't serialize its target
 [AttributeUsage(.Field)]
-struct XmlNoSerializeAttribute : Attribute;
+struct NoSerializeAttribute : Attribute;
 
 /// will serialize its target even if it isn't public
 [AttributeUsage(.Field)]
-struct XmlForceSerializeAttribute : Attribute;
+struct ForceSerializeAttribute : Attribute;
 
 /// will serialize its target as an attribute instead of an element
 [AttributeUsage(.Field)]
@@ -250,8 +250,8 @@ extension Xml
 		{
 			for (let field in type.GetFields())
 			{
-				if (field.IsStatic || field.IsConst || field.HasCustomAttribute<XmlNoSerializeAttribute>()
-					|| (!field.IsPublic && !field.HasCustomAttribute<XmlForceSerializeAttribute>())) continue;
+				if (field.IsStatic || field.IsConst || field.HasCustomAttribute<NoSerializeAttribute>()
+					|| (!field.IsPublic && !field.HasCustomAttribute<ForceSerializeAttribute>())) continue;
 
 				/*if (blocked.Contains(field.FieldType))
 					Internal.FatalError(scope $"{field.FieldType} causes a circular data reference");*/

@@ -121,8 +121,8 @@ extension Xml
 			""");
 		for (let field in typeof(T).GetFields())
 		{
-			if (field.IsStatic || field.IsConst || field.HasCustomAttribute<XmlNoSerializeAttribute>()
-				|| (!field.IsPublic && !field.HasCustomAttribute<XmlForceSerializeAttribute>())
+			if (field.IsStatic || field.IsConst || field.HasCustomAttribute<NoSerializeAttribute>()
+				|| (!field.IsPublic && !field.HasCustomAttribute<ForceSerializeAttribute>())
 				|| !field.HasCustomAttribute<XmlAttributeSerializeAttribute>()) continue;
 
 			symbols.AppendF($"bool {field.Name} = false;\n");
@@ -159,8 +159,8 @@ extension Xml
 			""");
 		for (let field in typeof(T).GetFields())
 		{
-			if (field.IsStatic || field.IsConst || field.HasCustomAttribute<XmlNoSerializeAttribute>()
-				|| (!field.IsPublic && !field.HasCustomAttribute<XmlForceSerializeAttribute>())
+			if (field.IsStatic || field.IsConst || field.HasCustomAttribute<NoSerializeAttribute>()
+				|| (!field.IsPublic && !field.HasCustomAttribute<ForceSerializeAttribute>())
 				|| field.HasCustomAttribute<XmlAttributeSerializeAttribute>()) continue;
 
 			symbols.AppendF($"bool _{field.Name} = false;\n");
