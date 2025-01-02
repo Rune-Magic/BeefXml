@@ -115,7 +115,7 @@ class JsonReader : this(MarkupSource source, Options flags = .None)
 				switch (double.Parse(builder))
 				{
 				case .Ok(let val):
-					return .Ok(.Float(val));
+					return .Ok(.Number(val));
 				case .Err:
 					source.Error($"Malformed number: {err}");
 					return .Err;
@@ -135,7 +135,7 @@ class JsonReader : this(MarkupSource source, Options flags = .None)
 		case .False: return .Ok(false);
 		case .Null: return .Ok(null);
 		case .Int(let val): return .Ok(val);
-		case .Float(let val): return .Ok(val);
+		case .Number(let val): return .Ok(val);
 		case .String(let val): return .Ok(val);
 		case .EOF:
 			source.Error("Expected element");

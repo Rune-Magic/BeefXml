@@ -34,7 +34,7 @@ class JsonBuilder : this(StreamWriter stream, Options flags = .Format)
 		case .False: Try!(stream.Write("false"));
 		case .Null: Try!(stream.Write("null"));
 		case .Int(let val): Try!(stream.Write(val.ToString(..scope .())));
-		case .Float(let val): Try!(stream.Write(val.ToString(..scope .())));
+		case .Number(let val): Try!(stream.Write(val.ToString(..scope .())));
 		case .String(let val): Try!(stream.Write(val.Quote(..scope .())));
 
 		case .Colon:
@@ -70,7 +70,7 @@ class JsonBuilder : this(StreamWriter stream, Options flags = .Format)
 		{
 		case .Null: Try!(Write(JsonToken.Null));
 		case .Int(let val): Try!(Write(JsonToken.Int(val)));
-		case .Float(let val): Try!(Write(JsonToken.Float(val)));
+		case .Float(let val): Try!(Write(JsonToken.Number(val)));
 		case .String(let val): Try!(Write(JsonToken.String(val)));
 		case .Bool(let bool): Try!(Write(bool ? .True : .False));
 		case .Object(let object):

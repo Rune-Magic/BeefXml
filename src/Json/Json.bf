@@ -14,7 +14,7 @@ enum JsonToken
 	case RBracket, LBracket;
 	case Comma, Colon, EOF;
 	case String(String string);
-	case Int(int64), Float(double);
+	case Int(int64), Number(double);
 }
 
 enum JsonElement

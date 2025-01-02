@@ -45,6 +45,40 @@ extension Json
 		}
 
 		[Comptime, NoReturn]
+		void Emit<T>() where T : enum
+		{
+			let type = typeof(T);
+			String outString = scope .(256);
+			bool basic = true;
+			for (let entry in type.GetFields())
+			{
+				if (!entry.IsEnumCase) continue;
+				if (!entry.FieldType.IsTuple) continue;
+				basic = false;
+				break;
+			}
+			if (basic)
+			{
+				outString.Append("""
+					Assert!(Try!(reader.NextToken()) case .String(let str), \"String expected\");
+					switch (str)
+					{
+					""");
+				for (let entry in type.GetFields())
+				{
+					if (!entry.IsEnumCase) continue;
+					let name = entry.Name;
+					outString.AppendF($"""
+						case "{name}": return .Ok(.{name});
+						""");
+				}
+				outString.Append('}');
+			}
+
+			Compiler.MixinRoot(outString);
+		}
+
+		[Comptime, NoReturn]
 		void Emit<T>() where T : class
 		{
 			let type = typeof(T);
@@ -63,7 +97,7 @@ extension Json
 			outString.Append("""
 				loop: while (true)
 				{
-					Assert!(next case .String(let key), \"Expected object\");
+					Assert!(Try!(reader.NextToken()) case .String(let key), \"Object expected\");
 					switch (key)
 					{
 				""");
@@ -78,7 +112,7 @@ extension Json
 				outString.AppendF($"""
 					case "{name}":
 						Assert(!{name}, "Duplicate key");
-						Assert!(next case .Colon, \"Expected colon\");
+						Assert!(Try!(reader.NextToken()) case .Colon, \"Expected colon\");
 						result.{name} = Deserialize<decltype(result.{name})>(reader);
 						{name} = true;
 					""");
