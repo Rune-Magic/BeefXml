@@ -474,14 +474,14 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 				if (!cdata)
 					switch (c)
 					{
-					case '\'', '"':
-						if (!terminateOnQuote || c != quote) break;
-						Source.MoveBy(length);
-						break loop;
 					case '>' when !terminateOnQuote:
 						if (c == quote) fallthrough;
 						/*Source.Error($"Usage of reserved character: {c}");
 						return .Err;*/
+					case '\'', '"':
+						if (!terminateOnQuote || c != quote) break;
+						Source.MoveBy(length);
+						break loop;
 					case '&':
 						builder.Append(Try!(HandleEntity()));
 						continue;
