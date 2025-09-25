@@ -480,8 +480,8 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 						break loop;
 					case '>' when !terminateOnQuote:
 						if (c == quote) fallthrough;
-						Source.Error($"Usage of reserved character: {c}");
-						return .Err;
+						/*Source.Error($"Usage of reserved character: {c}");
+						return .Err;*/
 					case '&':
 						builder.Append(Try!(HandleEntity()));
 						continue;
