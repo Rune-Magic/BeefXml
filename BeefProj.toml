@@ -2,5 +2,6 @@ FileVersion = 1
 
 [Project]
 Name = "BeefXml"
+TargetType = "BeefLib"
 StartupObject = "BeefXml.Program"
 DefaultNamespace = "Xml"
