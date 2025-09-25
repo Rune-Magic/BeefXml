@@ -289,6 +289,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 				Source.Error("Expected double or single quote");
 				return .Err;
 			}
+			if (Source.Consume(quote)) return .Attribute(name, "");
 			switch (ParseCharacterData(quote))
 			{
 			case .CharacterData(let data):
