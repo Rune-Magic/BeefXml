@@ -69,10 +69,10 @@ abstract class XmlVisitor
 abstract class XmlInsertVisitor : XmlVisitor
 {
 	/// will run the remaining visitiors on the input before continuing with the current visitable
-	protected delegate void(XmlVisitable) InsertBeforeCurrent;
+	protected delegate void(XmlVisitable) InsertBeforeCurrent { get; internal set; }
 
 	/// will act as if the current visitable were followed by the provided one
-	protected delegate void(XmlVisitable) InsertAfterCurrent;
+	protected delegate void(XmlVisitable) InsertAfterCurrent { get; internal set; }
 }
 
 abstract class XmlAsyncVisitor : XmlVisitor
@@ -102,14 +102,14 @@ class XmlVisitorPipeline
 	public XmlHeader CurrentHeader { get; private set; }
 	public XmlReader Reader { get; private set; }
 
-	protected XmlVisitor[] pipeline ~ DeleteContainerAndItems!(_);
+	protected XmlVisitor[] pipeline ~ delete _;
 	protected List<String> tagDepth = new .(16) ~ delete _;
 
 	private bool hasInsertVisitors = false;
 
-	public this(params XmlVisitor[] visitors)
+	public this(params Span<XmlVisitor> visitors)
 	{
-		pipeline = new .[visitors.Count];
+		pipeline = new .[visitors.Length];
 		visitors.CopyTo(pipeline);
 		for (let visitor in pipeline)
 		{
@@ -138,31 +138,30 @@ class XmlVisitorPipeline
 
 		XmlVisitable node;
 		bool root = true;
-		repeat
+		node: repeat
 		{
 			node = reader.ParseNext(root);
 			root = false;
 
 			Result<(bool tag, bool eof)> Validate(XmlVisitable node)
 			{
-				bool tag = false, eof = false;
+				bool tag = false, eof = false, popTag = false;
 				switch (node)
 				{
 				case .OpeningTag(let name):
 					tagDepth.Add(name);
 					tag = true;
-				case .OpeningEnd(let singleton):
-					if (singleton)
-						tagDepth.PopBack();
+				case .OpeningEnd(let bodyless):
 					tag = true;
+					popTag = bodyless;
 				case .ClosingTag(let name):
-					let end = tagDepth.PopBack();
-					if (end != name)
+					if (tagDepth.Back != name)
 					{
-						reader.source.Error(new $"Element <{end}> was not closed");
+						reader.source.Error(new $"Element <{tagDepth.Back}> was not closed");
 						return .Err;
 					}
 					tag = true;
+					popTag = true;
 				case .CharacterData, .Attribute:
 				case .Err:
 					return .Err;
@@ -180,6 +179,7 @@ class XmlVisitorPipeline
 			}
 			(bool tag, bool eof) = Try!(Validate(node));
 
+			Result<void>? returning = null;
 			mixin PerformAction(XmlVisitor.Action action)
 			{
 				switch (action)
@@ -187,16 +187,17 @@ class XmlVisitorPipeline
 				case .Continue:
 				case .Terminate:
 					tagDepth.Clear();
-					return .Ok;
+					returning = .Ok;
+					break mixin;
 				case .Error:
 					tagDepth.Clear();
-					return .Err;
+					returning = .Err;
+					break mixin;
 				case .Skip:
-					break;
+					break mixin;
 				}
 			}
 			
-			Result<void>? returning = null;
 			visit: for (let visitor in pipeline.GetEnumerator())
 			{
 				if (tag && visitor.Flags.HasFlag(.SkipTags)) continue;
@@ -221,13 +222,10 @@ class XmlVisitorPipeline
 							if (returning != null) return;
 							if (tag && visitor.Flags.HasFlag(.SkipTags)) continue;
 							if (eof && !visitor.Flags.HasFlag(.VisitEOF)) continue;
-							Result<void>? DoVisit()
-							{
-								PerformAction!(left.Visit(ref val));
-								return null;
-							}
-							returning = DoVisit();
+							PerformAction!(left.Visit(ref val));
 						}
+						if (val case .OpeningEnd(true) || val case .ClosingTag)
+							tagDepth.PopBack();
 					};
 				}
 
@@ -236,6 +234,9 @@ class XmlVisitorPipeline
 				if (returning != null)
 					return (.)returning;
 			}
+
+			if (node case .OpeningEnd(true) || node case .ClosingTag)
+				tagDepth.PopBack();
 		}
 		while (!(node case .EOF));
 

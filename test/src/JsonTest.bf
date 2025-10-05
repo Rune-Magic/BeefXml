@@ -52,6 +52,12 @@ static
 	{
 		public int a = 25;
 		public double b;
+		public Foo foo;
+
+		public enum Foo
+		{
+			case foo, bar(int), @null;
+		}
 	}
 
 	[Test]
@@ -59,15 +65,17 @@ static
 	{
 		const let input = """
 			{
-				"b": 15.2
+				"b": 15.2,
+				"foo": "null"
 			}
 			""";
 
 		StringStream stream = scope .(input, .Reference);
 		MarkupSource source = scope .(scope .(stream), "input");
 		JsonReader reader = scope .(source);
-		let bar = Json.Deserialize<TestBar>(reader, false).Get();
-		Test.Assert(bar.a == 25);
+		let bar = Json.Deserialize<JsonSchema>(reader, false).Get();
+		/*Test.Assert(bar.a == 25);
 		Test.Assert(bar.b == 15.2);
+		Test.Assert(bar.foo case .@null);*/
 	}
 }

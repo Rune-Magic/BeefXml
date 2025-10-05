@@ -289,6 +289,7 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 				Source.Error("Expected double or single quote");
 				return .Err;
 			}
+			if (Source.Consume(quote)) return .Attribute(name, "");
 			switch (ParseCharacterData(quote))
 			{
 			case .CharacterData(let data):
@@ -474,14 +475,14 @@ class XmlReader : this(MarkupSource source, Options flags = .SkipWhitespace | .R
 				if (!cdata)
 					switch (c)
 					{
+					case '>' when !terminateOnQuote:
+						if (c == quote) fallthrough;
+						/*Source.Error($"Usage of reserved character: {c}");
+						return .Err;*/
 					case '\'', '"':
 						if (!terminateOnQuote || c != quote) break;
 						Source.MoveBy(length);
 						break loop;
-					case '>' when !terminateOnQuote:
-						if (c == quote) fallthrough;
-						Source.Error($"Usage of reserved character: {c}");
-						return .Err;
 					case '&':
 						builder.Append(Try!(HandleEntity()));
 						continue;
