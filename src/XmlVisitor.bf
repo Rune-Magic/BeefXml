@@ -129,11 +129,11 @@ class XmlVisitorPipeline
 		for (let visitor in pipeline)
 		{
 			visitor.[Friend]CurrentSource = reader.source;
+			visitor.Init();
 			if (!hasInsertVisitors) continue;
 			let insertVisitor = visitor as XmlInsertVisitor;
 			if (insertVisitor == null) continue;
 			insertVisitor.[Friend]InsertAfterCurrent = queueNext;
-			visitor.Init();
 		}
 
 		XmlVisitable node;
